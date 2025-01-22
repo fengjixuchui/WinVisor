@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinVisor", "WinVisor\WinVisor.vcproj", "{EB976AD4-A58B-4E10-B351-B4A36537FA5E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinVisorDLL", "WinVisorDLL\WinVisorDLL.vcproj", "{BF705FB8-4B81-4092-8F99-603FE08884FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB976AD4-A58B-4E10-B351-B4A36537FA5E}.Debug|x64.ActiveCfg = Debug|x64
+		{EB976AD4-A58B-4E10-B351-B4A36537FA5E}.Debug|x64.Build.0 = Debug|x64
+		{EB976AD4-A58B-4E10-B351-B4A36537FA5E}.Release|x64.ActiveCfg = Release|x64
+		{EB976AD4-A58B-4E10-B351-B4A36537FA5E}.Release|x64.Build.0 = Release|x64
+		{BF705FB8-4B81-4092-8F99-603FE08884FD}.Debug|x64.ActiveCfg = Debug|x64
+		{BF705FB8-4B81-4092-8F99-603FE08884FD}.Debug|x64.Build.0 = Debug|x64
+		{BF705FB8-4B81-4092-8F99-603FE08884FD}.Release|x64.ActiveCfg = Release|x64
+		{BF705FB8-4B81-4092-8F99-603FE08884FD}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
