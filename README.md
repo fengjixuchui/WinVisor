@@ -69,7 +69,7 @@ Virtualized software exceptions are not currently supported. If an exception occ
 
 **Safety issues**
 
-There are several ways to "escape" the VM, such as simply creating a new process/thread, scheduling asynchronous procedure calls (APCs), etc. Windows GUI-related syscalls can also make nested calls directly back into user-mode from the kernel, which would currently bypass the hypervisor layer. For this reason, GUI executables such as notepad.exe are only partially virtualized when run under WinVisor.
+There are several ways to "escape" the VM, such as simply creating a new process/thread, scheduling APC calls, etc. Windows GUI-related syscalls can also make nested calls directly back into user-mode from the kernel, which would currently bypass the hypervisor layer. For this reason, GUI executables such as `notepad.exe` are only partially virtualized when run under WinVisor at this time.
 
 **Shared host memory**
 
