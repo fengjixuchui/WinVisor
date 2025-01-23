@@ -19,9 +19,11 @@ WinVisor has some limitations in its current form - the biggest one being that i
 Despite these limitations, it still works well with many executables. It has been tested successfully against built-in Windows executables such as `cmd.exe`, `ping.exe`, and even GUI applications such as `mspaint.exe` and `notepad.exe` (although these only run partially virtualized as described later).
 
 To launch WinVisor, simply execute the following command:
+
 `WinVisor.exe <target_executable_path>`
 
 Command-line parameters can also be specified for the target application, for example:
+
 `WinVisor.exe c:\windows\system32\ping.exe 8.8.8.8`
 
 If `[ERROR] Failed to initialise Windows Hypervisor Platform API` is displayed, please ensure that `Windows Hypervisor Platform` is installed and enabled in "Windows Features".
