@@ -81,7 +81,6 @@ While the virtual CPU is set up to support NX, all memory regions are currently 
 
 ## Further Reading
 
-This project is described in further detail in the following article:
-(add URL)
+This project is described in further detail in the following article: https://www.elastic.co/security-labs/winvisor-hypervisor-based-emulator
 
 During development, I came across a similar project called [Simpleator](https://github.com/ionescu007/Simpleator) by Alex Ionescu. His project also utilizes the WHP API to emulate Windows x64 binaries, but is implemented in a very different way.
