@@ -24,7 +24,7 @@ To launch WinVisor, simply execute the following command:
 Command-line parameters can also be specified for the target application, for example:
 `WinVisor.exe c:\windows\system32\ping.exe 8.8.8.8`
 
-If `[ERROR] Failed to initialise Hypervisor Platform API` is displayed, please ensure that `Windows Hypervisor Platform` is installed and enabled in "Windows Features".
+If `[ERROR] Failed to initialise Windows Hypervisor Platform API` is displayed, please ensure that `Windows Hypervisor Platform` is installed and enabled in "Windows Features".
 
 ![cmd.exe running under WinVisor](https://github.com/x86matthew/WinVisor/blob/main/winvisor_screenshot.png?raw=true)
 *(screenshot above shows WinVisor emulating `cmd.exe` within a virtualized environment)*
