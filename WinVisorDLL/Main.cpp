@@ -52,7 +52,7 @@ DWORD StartHypervisor_Initialise(WinVisorStartDataStruct *pWinVisorStartData, Cp
 	// initialise hypervisor platform api
 	if(HypervisorUtils_Initialise() != 0)
 	{
-		WriteLog(LOG_ERROR, "Failed to initialise hypervisor platform API");
+		WriteLog(LOG_ERROR, "Failed to initialise Windows Hypervisor Platform API");
 		return 1;
 	}
 
