@@ -1,6 +1,6 @@
 #include "WinVisor.h"
 
-char szGlobal_DllPath[512];
+char gszDllPath[512];
 
 DWORD GetDllPath()
 {
@@ -23,8 +23,8 @@ DWORD GetDllPath()
 	*pLastSlash = '\0';
 
 	// append the dll name
-	memset(szGlobal_DllPath, 0, sizeof(szGlobal_DllPath));
-	_snprintf(szGlobal_DllPath, sizeof(szGlobal_DllPath) - 1, "%s\\WinVisorDLL.dll", szBaseDirectory);
+	memset(gszDllPath, 0, sizeof(gszDllPath));
+	_snprintf(gszDllPath, sizeof(gszDllPath) - 1, "%s\\WinVisorDLL.dll", szBaseDirectory);
 
 	return 0;
 }
@@ -36,7 +36,7 @@ DWORD GetStartHypervisorExportRVA(DWORD *pdwStartHypervisorExportRVA)
 	DWORD dwStartHypervisorExportRVA = 0;
 
 	// temporarily load WinVisor DLL
-	hWinVisorDLL = LoadLibraryA(szGlobal_DllPath);
+	hWinVisorDLL = LoadLibraryA(gszDllPath);
 	if(hWinVisorDLL == NULL)
 	{
 		printf("Error: Failed to load DLL\n");
@@ -361,7 +361,7 @@ DWORD PatchRemoteExeEntryPoint(HANDLE hProcess, VOID *pRemoteExeModuleBase, IMAG
 	pRemoteEntryPoint = (BYTE*)pRemoteExeModuleBase + pOrigRemoteExeNtHeader->OptionalHeader.AddressOfEntryPoint;
 
 	// allocate memory in remote process for winvisor dll path
-	pRemoteDllPath = VirtualAllocEx(hProcess, NULL, sizeof(szGlobal_DllPath), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	pRemoteDllPath = VirtualAllocEx(hProcess, NULL, sizeof(gszDllPath), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	if(pRemoteDllPath == NULL)
 	{
 		return 1;
@@ -395,7 +395,7 @@ DWORD PatchRemoteExeEntryPoint(HANDLE hProcess, VOID *pRemoteExeModuleBase, IMAG
 	}
 
 	// copy full dll path to remote process
-	if(WriteProcessMemory(hProcess, pRemoteDllPath, szGlobal_DllPath, sizeof(szGlobal_DllPath), NULL) == 0)
+	if(WriteProcessMemory(hProcess, pRemoteDllPath, gszDllPath, sizeof(gszDllPath), NULL) == 0)
 	{
 		return 1;
 	}

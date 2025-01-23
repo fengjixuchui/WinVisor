@@ -12,7 +12,7 @@ HRESULT (WINAPI *WHvCreateVirtualProcessor)(WHV_PARTITION_HANDLE Partition, UINT
 HRESULT (WINAPI *WHvGetVirtualProcessorRegisters)(WHV_PARTITION_HANDLE Partition, UINT32 VpIndex, const WHV_REGISTER_NAME* RegisterNames, UINT32 RegisterCount, WHV_REGISTER_VALUE* RegisterValues) = NULL;
 HRESULT (WINAPI *WHvGetCapability)(WHV_CAPABILITY_CODE CapabilityCode, VOID* CapabilityBuffer, UINT32 CapabilityBufferSizeInBytes, UINT32 *WrittenSizeInBytes) = NULL;
 
-ImportFunctionStruct Global_ImportHypervisorPlatformFunctionList[] =
+ImportFunctionStruct gImportHypervisorPlatformFunctionList[] =
 {
 	{ "WHvCreatePartition", (void**)&WHvCreatePartition },
 	{ "WHvDeletePartition", (void**)&WHvDeletePartition },
@@ -27,7 +27,7 @@ ImportFunctionStruct Global_ImportHypervisorPlatformFunctionList[] =
 	{ "WHvGetCapability", (void**)&WHvGetCapability },
 };
 
-HANDLE hGlobal_PartitionHandle = NULL;
+HANDLE ghPartitionHandle = NULL;
 
 DWORD HypervisorUtils_Initialise()
 {
@@ -45,18 +45,18 @@ DWORD HypervisorUtils_Initialise()
 	}
 
 	// resolve imported functions
-	dwFunctionCount = sizeof(Global_ImportHypervisorPlatformFunctionList) / sizeof(Global_ImportHypervisorPlatformFunctionList[0]);
+	dwFunctionCount = sizeof(gImportHypervisorPlatformFunctionList) / sizeof(gImportHypervisorPlatformFunctionList[0]);
 	for(DWORD i = 0; i < dwFunctionCount; i++)
 	{
 		// resolve current function
-		pImportAddr = GetProcAddress(hModule, Global_ImportHypervisorPlatformFunctionList[i].pName);
+		pImportAddr = GetProcAddress(hModule, gImportHypervisorPlatformFunctionList[i].pName);
 		if(pImportAddr == NULL)
 		{
 			return 1;
 		}
 
 		// store function ptr
-		*Global_ImportHypervisorPlatformFunctionList[i].pFunctionPtrAddr = pImportAddr;
+		*gImportHypervisorPlatformFunctionList[i].pFunctionPtrAddr = pImportAddr;
 	}
 
 	// ensure the hypervisor platform is enabled
@@ -127,16 +127,16 @@ DWORD HypervisorUtils_CreateEnvironment()
 	}
 
 	// store handle
-	hGlobal_PartitionHandle = hPartitionHandle;
+	ghPartitionHandle = hPartitionHandle;
 
 	return 0;
 }
 
 DWORD HypervisorUtils_DeleteEnvironment()
 {
-	if(hGlobal_PartitionHandle != NULL)
+	if(ghPartitionHandle != NULL)
 	{
-		WHvDeletePartition(hGlobal_PartitionHandle);
+		WHvDeletePartition(ghPartitionHandle);
 	}
 
 	return 0;
@@ -148,7 +148,7 @@ DWORD HypervisorUtils_GetRegisterValue_U64(WHV_REGISTER_NAME RegisterName, QWORD
 
 	// get uint64 register value
 	memset(&RegisterValue, 0, sizeof(RegisterValue));
-	if(WHvGetVirtualProcessorRegisters(hGlobal_PartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
+	if(WHvGetVirtualProcessorRegisters(ghPartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
 	{
 		return 1;
 	}
@@ -165,7 +165,7 @@ DWORD HypervisorUtils_SetRegisterValue_U64(WHV_REGISTER_NAME RegisterName, QWORD
 	// set uint64 register value
 	memset(&RegisterValue, 0, sizeof(RegisterValue));
 	RegisterValue.Reg64 = qwRegisterValue;
-	if(WHvSetVirtualProcessorRegisters(hGlobal_PartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
+	if(WHvSetVirtualProcessorRegisters(ghPartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
 	{
 		return 1;
 	}
@@ -194,7 +194,7 @@ DWORD HypervisorUtils_SetRegisterValue_Segment(WHV_REGISTER_NAME RegisterName, W
 		RegisterValue.Segment.SegmentType = 0xB;
 		RegisterValue.Segment.Long = 1;
 	}
-	if(WHvSetVirtualProcessorRegisters(hGlobal_PartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
+	if(WHvSetVirtualProcessorRegisters(ghPartitionHandle, 0, &RegisterName, 1, &RegisterValue) != S_OK)
 	{
 		return 1;
 	}
@@ -259,7 +259,7 @@ DWORD HypervisorUtils_SetRegisters(CpuRegisterStateStruct *pCpuRegisterState)
 DWORD HypervisorUtils_MapGuestMemory(void *pHostVirtualAddress, void *pGuestPhysicalAddress, DWORD dwSize)
 {
 	// map virtual memory region from host process into the guest
-	if(WHvMapGpaRange(hGlobal_PartitionHandle, pHostVirtualAddress, (WHV_GUEST_PHYSICAL_ADDRESS)pGuestPhysicalAddress, dwSize, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute) != S_OK)
+	if(WHvMapGpaRange(ghPartitionHandle, pHostVirtualAddress, (WHV_GUEST_PHYSICAL_ADDRESS)pGuestPhysicalAddress, dwSize, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute) != S_OK)
 	{
 		return 1;
 	}
@@ -270,7 +270,7 @@ DWORD HypervisorUtils_MapGuestMemory(void *pHostVirtualAddress, void *pGuestPhys
 DWORD HypervisorUtils_UnmapGuestMemory(void *pGuestPhysicalAddress, DWORD dwSize)
 {
 	// unmap region
-	if(WHvUnmapGpaRange(hGlobal_PartitionHandle, (WHV_GUEST_PHYSICAL_ADDRESS)pGuestPhysicalAddress, dwSize) != S_OK)
+	if(WHvUnmapGpaRange(ghPartitionHandle, (WHV_GUEST_PHYSICAL_ADDRESS)pGuestPhysicalAddress, dwSize) != S_OK)
 	{
 		return 1;
 	}
@@ -281,7 +281,7 @@ DWORD HypervisorUtils_UnmapGuestMemory(void *pGuestPhysicalAddress, DWORD dwSize
 DWORD HypervisorUtils_ResumeExecution(WHV_RUN_VP_EXIT_CONTEXT *pVmExitContext)
 {
 	// resume cpu execution until next vmexit event
-	if(WHvRunVirtualProcessor(hGlobal_PartitionHandle, 0, pVmExitContext, sizeof(WHV_RUN_VP_EXIT_CONTEXT)) != S_OK)
+	if(WHvRunVirtualProcessor(ghPartitionHandle, 0, pVmExitContext, sizeof(WHV_RUN_VP_EXIT_CONTEXT)) != S_OK)
 	{
 		return 1;
 	}

@@ -1,6 +1,6 @@
 #include "WinVisorDLL.h"
 
-DWORD dwGlobal_LoadedModuleImports = 0;
+DWORD gdwLoadedModuleImports = 0;
 
 DWORD ExecuteTlsCallbacks(VOID *pModuleBase)
 {
@@ -49,16 +49,16 @@ DWORD HypervisorEntryPoint_StartExe(VOID *pExeEntryPoint, DWORD *pdwExitCode)
 	DWORD dwExitCode = 0;
 
 	// load EXE imports
-	if(FixModuleImports(hGlobal_ExeBase) != 0)
+	if(FixModuleImports(ghExeBase) != 0)
 	{
 		return 1;
 	}
 
 	// loaded imports - set flag for logging purposes
-	dwGlobal_LoadedModuleImports = 1;
+	gdwLoadedModuleImports = 1;
 
 	// execute TLS callbacks
-	if(ExecuteTlsCallbacks(hGlobal_ExeBase) != 0)
+	if(ExecuteTlsCallbacks(ghExeBase) != 0)
 	{
 		return 1;
 	}

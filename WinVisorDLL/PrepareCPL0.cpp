@@ -1,8 +1,8 @@
 #include "WinVisorDLL.h"
 
-BootloaderParamsStruct Global_CPL0_BootloaderParams;
+BootloaderParamsStruct gCPL0_BootloaderParams;
 
-BYTE bGlobal_CPL0_BootloaderCode[] =
+BYTE gbCPL0_BootloaderCode[] =
 {
 	// (store BootloaderParams ptr)
 	// mov rdi, rcx
@@ -127,22 +127,22 @@ DWORD PrepareCPL0(CpuStateStruct *pCpuState)
 	}
 
 	// set bootloader params
-	memset(&Global_CPL0_BootloaderParams, 0, sizeof(Global_CPL0_BootloaderParams));
-	Global_CPL0_BootloaderParams.qwGDT_Limit = (sizeof(pCpuState->GDT) - 1) << TABLE_REGISTER_LIMIT_SHIFT;
-	Global_CPL0_BootloaderParams.qwGDT_Base = (UINT64)&pCpuState->GDT[0];
-	Global_CPL0_BootloaderParams.qwIDT_Limit = (sizeof(pCpuState->IDT) - 1) << TABLE_REGISTER_LIMIT_SHIFT;
-	Global_CPL0_BootloaderParams.qwIDT_Base = (UINT64)&pCpuState->IDT[0];
-	Global_CPL0_BootloaderParams.qwTSS_Selector = SEGMENT_SELECTOR_TSS;
-	Global_CPL0_BootloaderParams.qwCPL3_DataSelector = SEGMENT_SELECTOR_DATA_CPL3;
-	Global_CPL0_BootloaderParams.qwCPL3_RFLAGS = CPL3_INITIAL_RFLAGS;
-	Global_CPL0_BootloaderParams.qwCPL3_EntryPlaceholderAddress = CPL3_ENTRY_VIRTUAL_ADDRESS;
-	Global_CPL0_BootloaderParams.qwXCR0 = qwXCR0;
+	memset(&gCPL0_BootloaderParams, 0, sizeof(gCPL0_BootloaderParams));
+	gCPL0_BootloaderParams.qwGDT_Limit = (sizeof(pCpuState->GDT) - 1) << TABLE_REGISTER_LIMIT_SHIFT;
+	gCPL0_BootloaderParams.qwGDT_Base = (UINT64)&pCpuState->GDT[0];
+	gCPL0_BootloaderParams.qwIDT_Limit = (sizeof(pCpuState->IDT) - 1) << TABLE_REGISTER_LIMIT_SHIFT;
+	gCPL0_BootloaderParams.qwIDT_Base = (UINT64)&pCpuState->IDT[0];
+	gCPL0_BootloaderParams.qwTSS_Selector = SEGMENT_SELECTOR_TSS;
+	gCPL0_BootloaderParams.qwCPL3_DataSelector = SEGMENT_SELECTOR_DATA_CPL3;
+	gCPL0_BootloaderParams.qwCPL3_RFLAGS = CPL3_INITIAL_RFLAGS;
+	gCPL0_BootloaderParams.qwCPL3_EntryPlaceholderAddress = CPL3_ENTRY_VIRTUAL_ADDRESS;
+	gCPL0_BootloaderParams.qwXCR0 = qwXCR0;
 
 	// execute CPL0 bootloader first
 	memset(&InitialCpuRegisterState, 0, sizeof(InitialCpuRegisterState));
 	InitialCpuRegisterState.RFLAGS = EFLAGS_RESERVED_ALWAYS_ON;
-	InitialCpuRegisterState.RIP = (UINT64)bGlobal_CPL0_BootloaderCode;
-	InitialCpuRegisterState.RCX = (UINT64)&Global_CPL0_BootloaderParams;
+	InitialCpuRegisterState.RIP = (UINT64)gbCPL0_BootloaderCode;
+	InitialCpuRegisterState.RCX = (UINT64)&gCPL0_BootloaderParams;
 
 	// set initial registers
 	HypervisorUtils_SetRegisters(&InitialCpuRegisterState);

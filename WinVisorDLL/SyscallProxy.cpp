@@ -1,48 +1,14 @@
 #include "WinVisorDLL.h"
 
-DWORD dwGlobal_LogImportSyscallsEnabled = 0;
+DWORD gdwLogImportSyscallsEnabled = 0;
 
-struct LARGE_STRING
-{
-	ULONG Length;
-	ULONG MaximumLength:31;
-	ULONG bAnsi:1;
-	PVOID Buffer;
-};
-DWORD SyscallHook_NtUserCreateWindowEx(CpuStateStruct *pCpuState, CpuRegisterStateStruct *pCpuRegisterState, SyscallInfoStruct *pSyscallInfo, UINT64 *pqwReturnValue)
-{
-	LARGE_STRING NewLabel;
-
-	memset(&NewLabel, 0, sizeof(NewLabel));
-	NewLabel.Buffer = "Hooked by hypervisor!";
-	NewLabel.bAnsi = 1;
-	NewLabel.Length = (DWORD)strlen((char*)NewLabel.Buffer);
-	NewLabel.MaximumLength = NewLabel.Length;
-
-	// check for static control type
-	if(pSyscallInfo->qwParamList[1] == 0xC019)
-	{
-		// overwrite label
-		pSyscallInfo->qwParamList[3] = (UINT64)&NewLabel;
-	}
-
-	// forward syscall to host
-	if(ForwardSyscallToHost(pCpuState, pSyscallInfo, pqwReturnValue) != 0)
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-SyscallHookEntryStruct Global_SyscallHookList[] =
+SyscallHookEntryStruct gSyscallHookList[] =
 {
 	{ "NtTerminateThread", SyscallHook_NtTerminateThread },
 	{ "NtTerminateProcess", SyscallHook_NtTerminateProcess },
-	{ "NtUserCreateWindowEx", SyscallHook_NtUserCreateWindowEx },
 };
 
-BYTE bGlobal_SysRet[] =
+BYTE gbSysRet[] =
 {
 	// sysret
 	0x48, 0x0F, 0x07
@@ -289,10 +255,10 @@ DWORD ForwardSyscallToHost(CpuStateStruct *pCpuState, SyscallInfoStruct *pSyscal
 
 DWORD CheckSyscallLoggingEnabled()
 {
-	if(dwGlobal_LogImportSyscallsEnabled == 0)
+	if(gdwLogImportSyscallsEnabled == 0)
 	{
 		// check if the EXE imports have been loaded
-		if(dwGlobal_LoadedModuleImports == 0)
+		if(gdwLoadedModuleImports == 0)
 		{
 			// imports not loaded yet - suppress syscall logging
 			return 1;
@@ -446,11 +412,11 @@ DWORD HandleGuestSyscall(CpuStateStruct *pCpuState, CpuRegisterStateStruct *pCpu
 	LogSyscallStart(pSyscallName, dwSyscallParamCount, &SyscallInfo);
 
 	// check if this syscall is hooked
-	for(DWORD i = 0; i < sizeof(Global_SyscallHookList) / sizeof(Global_SyscallHookList[0]); i++)
+	for(DWORD i = 0; i < sizeof(gSyscallHookList) / sizeof(gSyscallHookList[0]); i++)
 	{
-		if(strcmp(pSyscallName, Global_SyscallHookList[i].pSyscallName) == 0)
+		if(strcmp(pSyscallName, gSyscallHookList[i].pSyscallName) == 0)
 		{
-			pSyscallHookEntry = &Global_SyscallHookList[i];
+			pSyscallHookEntry = &gSyscallHookList[i];
 			break;
 		}
 	}
@@ -479,7 +445,7 @@ DWORD HandleGuestSyscall(CpuStateStruct *pCpuState, CpuRegisterStateStruct *pCpu
 	pCpuRegisterState->RAX = qwReturnValue;
 
 	// set RIP to sysret instruction
-	pCpuRegisterState->RIP = (UINT64)bGlobal_SysRet;
+	pCpuRegisterState->RIP = (UINT64)gbSysRet;
 	
 	return 0;
 }
@@ -493,7 +459,7 @@ DWORD HandleSyscallInstruction(CpuStateStruct *pCpuState, CpuRegisterStateStruct
 	}
 
 	// set RIP to sysret instruction
-	pCpuRegisterState->RIP = (UINT64)bGlobal_SysRet;
+	pCpuRegisterState->RIP = (UINT64)gbSysRet;
 
 	return 0;
 }

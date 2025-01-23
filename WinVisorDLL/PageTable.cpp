@@ -1,11 +1,11 @@
 #include "WinVisorDLL.h"
 
-void *pGlobal_PageTableBase = NULL;
-DWORD dwGlobal_PageTableAllocSize = 0;
+void *gpPageTableBase = NULL;
+DWORD gdwPageTableAllocSize = 0;
 
-MappedVirtualAddressStruct Global_PagedVirtualAddressList[MAX_MAPPED_PAGE_COUNT];
+MappedVirtualAddressStruct gPagedVirtualAddressList[MAX_MAPPED_PAGE_COUNT];
 
-QWORD qwGlobal_CurrPagedVirtualAddressListCreationIndex = 0;
+QWORD gqwCurrPagedVirtualAddressListCreationIndex = 0;
 
 DWORD GetVirtualAddressTableIndexes(UINT64 qwVirtualAddress, VirtualAddressTableIndexesStruct *pVirtualAddressTableIndexes)
 {
@@ -45,7 +45,7 @@ PageTableStruct *GetNextTableLevel(PagingStateStruct *pPagingState, PageTableStr
 	if(pPageTable->qwEntries[wIndex] != 0)
 	{
 		qwTempPhysicalAddress = ((pPageTable->qwEntries[wIndex] >> 12) & 0xFFFFFF) * 0x1000;
-		pNextPageTable = (PageTableStruct*)((BYTE*)pGlobal_PageTableBase + qwTempPhysicalAddress - PAGE_TABLE_BASE_PHYSICAL_ADDRESS);
+		pNextPageTable = (PageTableStruct*)((BYTE*)gpPageTableBase + qwTempPhysicalAddress - PAGE_TABLE_BASE_PHYSICAL_ADDRESS);
 	}
 	else
 	{
@@ -54,7 +54,7 @@ PageTableStruct *GetNextTableLevel(PagingStateStruct *pPagingState, PageTableStr
 		{
 			return NULL;
 		}
-		pNextPageTable = (PageTableStruct*)((BYTE*)pGlobal_PageTableBase + (pPagingState->dwNextEntryIndex * sizeof(PageTableStruct)));
+		pNextPageTable = (PageTableStruct*)((BYTE*)gpPageTableBase + (pPagingState->dwNextEntryIndex * sizeof(PageTableStruct)));
 		pPageTable->qwEntries[wIndex] = (PAGE_TABLE_BASE_PHYSICAL_ADDRESS + (pPagingState->dwNextEntryIndex * sizeof(PageTableStruct))) | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
 		pPagingState->dwNextEntryIndex++;
 		ResetPageTable(pNextPageTable);
@@ -66,28 +66,28 @@ PageTableStruct *GetNextTableLevel(PagingStateStruct *pPagingState, PageTableStr
 DWORD CreatePageTables()
 {
 	// allocate page tables (PML4 + all possible tables for next 3 levels)
-	dwGlobal_PageTableAllocSize = sizeof(PageTableStruct) + (MAX_MAPPED_PAGE_COUNT * (3 * sizeof(PageTableStruct)));
-	pGlobal_PageTableBase = VirtualAlloc(NULL, dwGlobal_PageTableAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	if(pGlobal_PageTableBase == NULL)
+	gdwPageTableAllocSize = sizeof(PageTableStruct) + (MAX_MAPPED_PAGE_COUNT * (3 * sizeof(PageTableStruct)));
+	gpPageTableBase = VirtualAlloc(NULL, gdwPageTableAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if(gpPageTableBase == NULL)
 	{
 		return 1;
 	}
 
 	// map page tables into the guest at a fixed physical address
-	if(HypervisorUtils_MapGuestMemory(pGlobal_PageTableBase, (void*)PAGE_TABLE_BASE_PHYSICAL_ADDRESS, dwGlobal_PageTableAllocSize) != 0)
+	if(HypervisorUtils_MapGuestMemory(gpPageTableBase, (void*)PAGE_TABLE_BASE_PHYSICAL_ADDRESS, gdwPageTableAllocSize) != 0)
 	{
 		DeletePageTables();
 		return 1;
 	}
 
 	// initialise mapped address list
-	memset(Global_PagedVirtualAddressList, 0, sizeof(Global_PagedVirtualAddressList));
+	memset(gPagedVirtualAddressList, 0, sizeof(gPagedVirtualAddressList));
 	for(DWORD i = 0; i < MAX_MAPPED_PAGE_COUNT; i++)
 	{
-		Global_PagedVirtualAddressList[i].dwInUse = 0;
-		Global_PagedVirtualAddressList[i].qwCreationIndex = 0;
-		Global_PagedVirtualAddressList[i].qwVirtualAddress = 0;
-		Global_PagedVirtualAddressList[i].qwPhysicalAddress = PAGE_TABLE_BASE_PHYSICAL_ADDRESS + dwGlobal_PageTableAllocSize + (i * PAGE_SIZE);
+		gPagedVirtualAddressList[i].dwInUse = 0;
+		gPagedVirtualAddressList[i].qwCreationIndex = 0;
+		gPagedVirtualAddressList[i].qwVirtualAddress = 0;
+		gPagedVirtualAddressList[i].qwPhysicalAddress = PAGE_TABLE_BASE_PHYSICAL_ADDRESS + gdwPageTableAllocSize + (i * PAGE_SIZE);
 	}
 
 	return 0;
@@ -95,10 +95,10 @@ DWORD CreatePageTables()
 
 DWORD DeletePageTables()
 {
-	if(pGlobal_PageTableBase != NULL)
+	if(gpPageTableBase != NULL)
 	{
 		// free memory
-		VirtualFree(pGlobal_PageTableBase, 0, MEM_RELEASE);
+		VirtualFree(gpPageTableBase, 0, MEM_RELEASE);
 	}
 
 	return 0;
@@ -114,25 +114,25 @@ DWORD RebuildPageTables()
 	PagingStateStruct PagingState;
 
 	// reset PML4
-	pPML4 = (PageTableStruct*)pGlobal_PageTableBase;
+	pPML4 = (PageTableStruct*)gpPageTableBase;
 	ResetPageTable(pPML4);
 
 	// initialise state
 	memset(&PagingState, 0, sizeof(PagingState));
-	PagingState.dwTotalEntryCount = (dwGlobal_PageTableAllocSize / 0x1000);
+	PagingState.dwTotalEntryCount = (gdwPageTableAllocSize / 0x1000);
 	PagingState.dwNextEntryIndex = 1;
 
 	// rebuild page tables
 	for(DWORD i = 0; i < MAX_MAPPED_PAGE_COUNT; i++)
 	{
-		if(Global_PagedVirtualAddressList[i].dwInUse == 0)
+		if(gPagedVirtualAddressList[i].dwInUse == 0)
 		{
 			continue;
 		}
 
 		// extract table indexes from current virtual address
 		memset(&VirtualAddressTableIndexes, 0, sizeof(VirtualAddressTableIndexes));
-		if(GetVirtualAddressTableIndexes(Global_PagedVirtualAddressList[i].qwVirtualAddress, &VirtualAddressTableIndexes) != 0)
+		if(GetVirtualAddressTableIndexes(gPagedVirtualAddressList[i].qwVirtualAddress, &VirtualAddressTableIndexes) != 0)
 		{
 			return 1;
 		}
@@ -143,7 +143,7 @@ DWORD RebuildPageTables()
 		pPT = GetNextTableLevel(&PagingState, pPD, VirtualAddressTableIndexes.wPD);
 
 		// set mirrored page physical address
-		pPT->qwEntries[VirtualAddressTableIndexes.wPT] = Global_PagedVirtualAddressList[i].qwPhysicalAddress | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
+		pPT->qwEntries[VirtualAddressTableIndexes.wPT] = gPagedVirtualAddressList[i].qwPhysicalAddress | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
 	}
 
 	// flush TLB
@@ -164,12 +164,12 @@ DWORD AddPagedVirtualAddress(UINT64 qwVirtualAddress)
 	// check if this page is already mapped
 	for(DWORD i = 0; i < MAX_MAPPED_PAGE_COUNT; i++)
 	{
-		if(Global_PagedVirtualAddressList[i].dwInUse == 0)
+		if(gPagedVirtualAddressList[i].dwInUse == 0)
 		{
 			continue;
 		}
 
-		if(Global_PagedVirtualAddressList[i].qwVirtualAddress == qwVirtualAddressPage)
+		if(gPagedVirtualAddressList[i].qwVirtualAddress == qwVirtualAddressPage)
 		{
 			// this entry is already paged in - unknown error
 			return 1;
@@ -179,9 +179,9 @@ DWORD AddPagedVirtualAddress(UINT64 qwVirtualAddress)
 	// check for a free entry in the list
 	for(DWORD i = 0; i < MAX_MAPPED_PAGE_COUNT; i++)
 	{
-		if(Global_PagedVirtualAddressList[i].dwInUse == 0)
+		if(gPagedVirtualAddressList[i].dwInUse == 0)
 		{
-			pFreeEntry = &Global_PagedVirtualAddressList[i];
+			pFreeEntry = &gPagedVirtualAddressList[i];
 			break;
 		}
 	}
@@ -191,20 +191,20 @@ DWORD AddPagedVirtualAddress(UINT64 qwVirtualAddress)
 		// list is full - find the oldest entry and remove it
 		for(DWORD i = 0; i < MAX_MAPPED_PAGE_COUNT; i++)
 		{
-			if(Global_PagedVirtualAddressList[i].dwInUse == 0)
+			if(gPagedVirtualAddressList[i].dwInUse == 0)
 			{
 				continue;
 			}
 
 			if(pOldestEntry == NULL)
 			{
-				pOldestEntry = &Global_PagedVirtualAddressList[i];
+				pOldestEntry = &gPagedVirtualAddressList[i];
 			}
 			else
 			{
-				if(Global_PagedVirtualAddressList[i].qwCreationIndex < pOldestEntry->qwCreationIndex)
+				if(gPagedVirtualAddressList[i].qwCreationIndex < pOldestEntry->qwCreationIndex)
 				{
-					pOldestEntry = &Global_PagedVirtualAddressList[i];
+					pOldestEntry = &gPagedVirtualAddressList[i];
 				}
 			}
 		}
@@ -229,8 +229,8 @@ DWORD AddPagedVirtualAddress(UINT64 qwVirtualAddress)
 	// store current entry in list
 	pFreeEntry->dwInUse = 1;
 	pFreeEntry->qwVirtualAddress = qwVirtualAddressPage;
-	pFreeEntry->qwCreationIndex = qwGlobal_CurrPagedVirtualAddressListCreationIndex;
-	qwGlobal_CurrPagedVirtualAddressListCreationIndex++;
+	pFreeEntry->qwCreationIndex = gqwCurrPagedVirtualAddressListCreationIndex;
+	gqwCurrPagedVirtualAddressListCreationIndex++;
 
 	// rebuild page tables
 	if(RebuildPageTables() != 0)

@@ -4,7 +4,7 @@
 #error Must be compiled as 64-bit
 #endif
 
-HMODULE hGlobal_NtdllBase = NULL;
+HMODULE ghNtdllBase = NULL;
 DWORD (WINAPI *pNtQueryInformationThread)(HANDLE ThreadHandle, DWORD ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength) = NULL;
 DWORD (WINAPI *pNtQuerySystemInformation)(DWORD SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength) = NULL;
 
@@ -15,27 +15,27 @@ DWORD StartHypervisor_Initialise(WinVisorStartDataStruct *pWinVisorStartData, Cp
 	// check if the "debug" command-line switch was specified
 	if(pWinVisorStartData->qwWinVisorFlags & WINVISOR_FLAG_DEBUG_LOG)
 	{
-		dwGlobal_DebugLogEnabled = 1;
+		gdwDebugLogEnabled = 1;
 	}
 
 	// check if the "imports" command-line switch was specified
 	if(pWinVisorStartData->qwWinVisorFlags & WINVISOR_FLAG_IMPORTS)
 	{
-		dwGlobal_LogImportSyscallsEnabled = 1;
+		gdwLogImportSyscallsEnabled = 1;
 	}
 
 	// get ntdll base
-	hGlobal_NtdllBase = GetModuleHandleA("ntdll.dll");
+	ghNtdllBase = GetModuleHandleA("ntdll.dll");
 
 	// get NtQueryInformationThread ptr
-	pNtQueryInformationThread = (DWORD(WINAPI*)(HANDLE,DWORD,PVOID,ULONG,PULONG))GetProcAddress(hGlobal_NtdllBase, "NtQueryInformationThread");
+	pNtQueryInformationThread = (DWORD(WINAPI*)(HANDLE,DWORD,PVOID,ULONG,PULONG))GetProcAddress(ghNtdllBase, "NtQueryInformationThread");
 	if(pNtQueryInformationThread == NULL)
 	{
 		return 1;
 	}
 
 	// get NtQuerySystemInformation ptr
-	pNtQuerySystemInformation = (DWORD(WINAPI*)(DWORD,PVOID,ULONG,PULONG))GetProcAddress(hGlobal_NtdllBase, "NtQuerySystemInformation");
+	pNtQuerySystemInformation = (DWORD(WINAPI*)(DWORD,PVOID,ULONG,PULONG))GetProcAddress(ghNtdllBase, "NtQuerySystemInformation");
 	if(pNtQuerySystemInformation == NULL)
 	{
 		return 1;

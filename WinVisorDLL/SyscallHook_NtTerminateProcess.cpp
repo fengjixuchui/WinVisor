@@ -3,7 +3,7 @@
 DWORD GuestProcessExited(DWORD dwExitCode)
 {
 	WriteLog(LOG_INFO, "** Guest process exited with code: %u **", dwExitCode);
-	dwGlobal_StopLog = 1;
+	gdwStopLog = 1;
 
 	return 0;
 }

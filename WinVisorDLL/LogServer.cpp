@@ -1,8 +1,8 @@
 #include "WinVisorDLL.h"
 
-DWORD dwGlobal_StopLog = 0;
-DWORD dwGlobal_DebugLogEnabled = 0;
-HANDLE hGlobal_LogPipe = NULL;
+DWORD gdwStopLog = 0;
+DWORD gdwDebugLogEnabled = 0;
+HANDLE ghLogPipe = NULL;
 
 DWORD InitialiseLogServer()
 {
@@ -13,24 +13,24 @@ DWORD InitialiseLogServer()
 	_snprintf(szPipeName, sizeof(szPipeName) - 1, "%s_%u", LOG_PIPE_NAME, GetCurrentProcessId());
 
 	// create logging pipe
-	hGlobal_LogPipe = CreateNamedPipeA(szPipeName, PIPE_ACCESS_OUTBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, NULL);
-	if(hGlobal_LogPipe == INVALID_HANDLE_VALUE)
+	ghLogPipe = CreateNamedPipeA(szPipeName, PIPE_ACCESS_OUTBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, NULL);
+	if(ghLogPipe == INVALID_HANDLE_VALUE)
 	{
 		return 1;
 	}
 
 	// wait for child process to connect
-	ConnectNamedPipe(hGlobal_LogPipe, NULL);
+	ConnectNamedPipe(ghLogPipe, NULL);
 
 	return 0;
 }
 
 DWORD CloseLogServer()
 {
-	if(hGlobal_LogPipe != NULL)
+	if(ghLogPipe != NULL)
 	{
 		// close log pipe
-		CloseHandle(hGlobal_LogPipe);
+		CloseHandle(ghLogPipe);
 	}
 
 	return 0;
@@ -61,7 +61,7 @@ DWORD WriteLog(DWORD dwLogType, char *pStringFormat, ...)
 	}
 	else if(dwLogType == LOG_DEBUG)
 	{
-		if(dwGlobal_DebugLogEnabled == 0)
+		if(gdwDebugLogEnabled == 0)
 		{
 			// debug logging disabled
 			return 1;
@@ -78,10 +78,10 @@ DWORD WriteLog(DWORD dwLogType, char *pStringFormat, ...)
 	memset(szFullMsg, 0, sizeof(szFullMsg));
 	_snprintf(szFullMsg, sizeof(szFullMsg) - 1, "[%s] %s\n", pLogType, szFormattedString);
 
-	if(dwGlobal_StopLog == 0)
+	if(gdwStopLog == 0)
 	{
 		// write to pipe
-		WriteFile(hGlobal_LogPipe, szFullMsg, (DWORD)strlen(szFullMsg), &dwWritten, NULL);
+		WriteFile(ghLogPipe, szFullMsg, (DWORD)strlen(szFullMsg), &dwWritten, NULL);
 	}
 
 	return 0;

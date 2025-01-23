@@ -1,6 +1,6 @@
 #include "WinVisorDLL.h"
 
-HMODULE hGlobal_ExeBase = NULL;
+HMODULE ghExeBase = NULL;
 
 DWORD PrepareCPL3_FixExecutable(WinVisorStartDataStruct *pWinVisorStartData, VOID **ppEntryPoint)
 {
@@ -11,18 +11,18 @@ DWORD PrepareCPL3_FixExecutable(WinVisorStartDataStruct *pWinVisorStartData, VOI
 	DWORD dwOrigProtect = 0;
 
 	// get entry-point for main executable
-	pExeNtHeader = GetNtHeader(hGlobal_ExeBase);
+	pExeNtHeader = GetNtHeader(ghExeBase);
 	if(pExeNtHeader == NULL)
 	{
 		return 1;
 	}
-	pEntryPoint = (BYTE*)hGlobal_ExeBase + pExeNtHeader->OptionalHeader.AddressOfEntryPoint;
+	pEntryPoint = (BYTE*)ghExeBase + pExeNtHeader->OptionalHeader.AddressOfEntryPoint;
 
 	// check if the "nx" command-line switch was specified
 	if(pWinVisorStartData->qwWinVisorFlags & WINVISOR_FLAG_NX)
 	{
 		// remove executable flag from all pages within the exe image
-		if(VirtualProtect(hGlobal_ExeBase, pExeNtHeader->OptionalHeader.SizeOfImage, PAGE_READWRITE, &dwOrigProtect) == 0)
+		if(VirtualProtect(ghExeBase, pExeNtHeader->OptionalHeader.SizeOfImage, PAGE_READWRITE, &dwOrigProtect) == 0)
 		{
 			return 1;
 		}
@@ -216,7 +216,7 @@ DWORD PrepareCPL3(CpuStateStruct *pCpuState, WinVisorStartDataStruct *pWinVisorS
 	VOID *pEntryPoint = NULL;
 
 	// store exe base
-	hGlobal_ExeBase = GetModuleHandleA(NULL);
+	ghExeBase = GetModuleHandleA(NULL);
 
 	// fix target executable - restore original entry-point, and optionally set all pages to non-executable
 	if(PrepareCPL3_FixExecutable(pWinVisorStartData, &pEntryPoint) != 0)

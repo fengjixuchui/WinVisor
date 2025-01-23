@@ -1,10 +1,10 @@
 #include "WinVisorDLL.h"
 
-SyscallNameEntryStruct *pGlobal_NtdllSyscallList = NULL;
-DWORD dwGlobal_NtdllSyscallCount = 0;
+SyscallNameEntryStruct *gpNtdllSyscallList = NULL;
+DWORD gdwNtdllSyscallCount = 0;
 
-SyscallNameEntryStruct *pGlobal_Win32uSyscallList = NULL;
-DWORD dwGlobal_Win32uSyscallCount = 0;
+SyscallNameEntryStruct *gpWin32uSyscallList = NULL;
+DWORD gdwWin32uSyscallCount = 0;
 
 int GenerateSyscallNameList_Compare(SyscallNameEntryStruct *pEntry1, SyscallNameEntryStruct *pEntry2)
 {
@@ -118,8 +118,8 @@ DWORD CreateSyscallLists()
 	HMODULE hWin32u = NULL;
 
 	// generate syscall name list for ntdll.dll (use "Zw" prefix to filter out non-syscalls such as NtdllDefWindowProc_A)
-	pGlobal_NtdllSyscallList = GenerateSyscallNameList(hGlobal_NtdllBase, "Zw", &dwGlobal_NtdllSyscallCount);
-	if(pGlobal_NtdllSyscallList == NULL)
+	gpNtdllSyscallList = GenerateSyscallNameList(ghNtdllBase, "Zw", &gdwNtdllSyscallCount);
+	if(gpNtdllSyscallList == NULL)
 	{
 		DeleteSyscallLists();
 		return 1;
@@ -134,8 +134,8 @@ DWORD CreateSyscallLists()
 	}
 
 	// generate syscall name list for win32u
-	pGlobal_Win32uSyscallList = GenerateSyscallNameList(hWin32u, "Nt", &dwGlobal_Win32uSyscallCount);
-	if(pGlobal_Win32uSyscallList == NULL)
+	gpWin32uSyscallList = GenerateSyscallNameList(hWin32u, "Nt", &gdwWin32uSyscallCount);
+	if(gpWin32uSyscallList == NULL)
 	{
 		FreeLibrary(hWin32u);
 		DeleteSyscallLists();
@@ -146,24 +146,24 @@ DWORD CreateSyscallLists()
 	FreeLibrary(hWin32u);
 
 	// attempt to populate param counts via wow64 - don't check for errors here, these param counts are used for display purposes only
-	PopulateSyscallParamCounts("ntdll.dll", pGlobal_NtdllSyscallList, dwGlobal_NtdllSyscallCount);
-	PopulateSyscallParamCounts("win32u.dll", pGlobal_Win32uSyscallList, dwGlobal_Win32uSyscallCount);
+	PopulateSyscallParamCounts("ntdll.dll", gpNtdllSyscallList, gdwNtdllSyscallCount);
+	PopulateSyscallParamCounts("win32u.dll", gpWin32uSyscallList, gdwWin32uSyscallCount);
 
 	return 0;
 }
 
 DWORD DeleteSyscallLists()
 {
-	if(pGlobal_NtdllSyscallList != NULL)
+	if(gpNtdllSyscallList != NULL)
 	{
 		// free memory
-		VirtualFree(pGlobal_NtdllSyscallList, 0, MEM_RELEASE);
+		VirtualFree(gpNtdllSyscallList, 0, MEM_RELEASE);
 	}
 
-	if(pGlobal_Win32uSyscallList != NULL)
+	if(gpWin32uSyscallList != NULL)
 	{
 		// free memory
-		VirtualFree(pGlobal_Win32uSyscallList, 0, MEM_RELEASE);
+		VirtualFree(gpWin32uSyscallList, 0, MEM_RELEASE);
 	}
 
 	return 0;
@@ -182,22 +182,22 @@ char *GetSyscallName(DWORD dwSyscallIndex, DWORD *pdwParamCount)
 	if(dwTableIndex == 0)
 	{
 		// ntdll / ntoskrnl
-		if(dwEntryIndex >= dwGlobal_NtdllSyscallCount)
+		if(dwEntryIndex >= gdwNtdllSyscallCount)
 		{
 			return NULL;
 		}
 
-		pSyscallEntry = &pGlobal_NtdllSyscallList[dwEntryIndex];
+		pSyscallEntry = &gpNtdllSyscallList[dwEntryIndex];
 	}
 	else if(dwTableIndex == 1)
 	{
 		// win32u / win32k
-		if(dwEntryIndex >= dwGlobal_Win32uSyscallCount)
+		if(dwEntryIndex >= gdwWin32uSyscallCount)
 		{
 			return NULL;
 		}
 
-		pSyscallEntry = &pGlobal_Win32uSyscallList[dwEntryIndex];
+		pSyscallEntry = &gpWin32uSyscallList[dwEntryIndex];
 	}
 	else
 	{
